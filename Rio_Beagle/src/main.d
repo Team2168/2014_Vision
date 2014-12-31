@@ -40,8 +40,7 @@ src/main.d: ../src/main.cpp \
  /home/kevin/git/2168_Vision/_Includes/OpenCV/2.4.10/opencv2/contrib/openfabmap.hpp \
  /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/set \
  /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/ctime \
- /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/iomanip \
- ../src/tcp_client.h
+ /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/iomanip
 
 /home/kevin/git/2168_Vision/_Includes/OpenCV/2.4.10/opencv2/opencv.hpp:
 
@@ -126,5 +125,3 @@ src/main.d: ../src/main.cpp \
 /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/ctime:
 
 /home/kevin/git/2168_Vision/_Includes/c++/4.6.3/iomanip:
-
-../src/tcp_client.h:

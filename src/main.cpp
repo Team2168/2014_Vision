@@ -14,9 +14,6 @@
 #include <sstream>
 
 #include <pthread.h>
-#include "tcp_client.h"
-
-
 
 using namespace cv;
 using namespace std;
@@ -74,25 +71,16 @@ struct Target
 //TODO: add pre- and post- comments for each function
 void parseCommandInputs(int argc, const char* argv[], ProgParams &params);
 void printCommandLineUsage();
-Mat GetOriginalImage(const ProgParams& params);
 void initializeParams(ProgParams& params);
 double diffClock(timespec start, timespec end);
 Mat ThresholdImage(Mat img);
 void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams& params);
 void NullTargets(Target& target);
 void CalculateDist(Target& targets);
-
-//Threaded TCP Functions
-void *TCP_thread(void *args);
-void *TCP_Send_Thread(void *args);
-void *TCP_Recv_Thread(void *args);
 void error(const char *msg);
 
 //Threaded Video Capture Function
 void *VideoCap(void *args);
-
-//Threaded Counter Function
-void *HotGoalCounter(void *args);
 
 //GLOBAL CONSTANTS
 const double PI = 3.141592653589793;
@@ -130,14 +118,9 @@ pthread_mutex_t frameMutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 //Thread Variables
-pthread_t TCPthread;
-pthread_t TCPsend;
-pthread_t TCPrecv;
 pthread_t MJPEG;
 pthread_t AutoCounter;
 
-//TCP Steam
-tcp_client client;
 
 //Store targets in global variable
 Target targets;
@@ -170,12 +153,7 @@ int main(int argc, const char* argv[])
 	targets.hotLeftOrRight = 0;
 	progRun = false;
 
-
-	//start TCP Server
-	pthread_create(&TCPthread, NULL, TCP_thread, &params);
-
 	struct timespec start, end;
-
 
 	//run loop forever
 	while (true)
@@ -186,8 +164,6 @@ int main(int argc, const char* argv[])
 
 		if (params.Process && progRun)
 		{
-
-
 			//start clock to determine our processing time;
 			clock_gettime(CLOCK_REALTIME, &start);
 
@@ -232,10 +208,6 @@ int main(int argc, const char* argv[])
 	}
 
 	//if we end the process code, wait for threads to end
-	pthread_join(TCPthread, NULL);
-	pthread_join(TCPsend, NULL);
-	pthread_join(TCPrecv, NULL);
-
 	pthread_join(MJPEG, NULL);
 
 	//done
@@ -281,8 +253,6 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 
 	vector<Vec4i> hierarchy;
 	vector<vector<Point> > contours;
-
-
 
 	//Find rectangles
 	findContours(thresholded, contours, hierarchy, RETR_EXTERNAL,
@@ -576,203 +546,7 @@ void parseCommandInputs(int argc, const char* argv[], ProgParams& params)
 
 	}
 }
-/**
- * This function either gets an image from the camera
- * loads from a file
- *
- * The condition is determined by variables within the
- * program struct.
- *
- * The image returned is then used for processing.
- *
- * THIS FUNCTION IS OBSOLTETE AND HAS BEEN REPLACED
- * BY AN FFMPEG STREAM FUNCTION
- */
-Mat GetOriginalImage(const ProgParams& params)
-{
-	Mat img;
 
-	if (params.From_Camera)
-	{
-
-		system("wget -q http://10.21.68.90/jpg/image.jpg -O capturedImage.jpg");
-
-		//load downloaded image
-		img = imread("capturedImage.jpg");
-
-	}
-	else if (params.From_File)
-	{
-		//load image from file
-		img = imread(params.IMAGE_FILE);
-	}
-
-	return img;
-}
-
-void error(const char *msg)
-{
-	perror(msg);
-	exit(0);
-}
-
-double diffClock(timespec start, timespec end)
-{
- return	(end.tv_sec - start.tv_sec) + (double) (end.tv_nsec - start.tv_nsec)/ 1000000000.0f;
-}
-
-/**
- * This function creates a TCP stream between the cRIO and the
- * beaglebone.
- *
- * Once the stream is established it will automatically
- * create two new threads, one to send a predetermined message
- * to the cRIO, and another to receive a predetermined message
- * from the cRIO.
- */
-
-void *TCP_thread(void *args)
-{
-	ProgParams *struct_ptr = (ProgParams *) args;
-
-	string ip = struct_ptr->ROBOT_IP;
-	int port = atoi(struct_ptr->ROBOT_PORT.c_str());
-
-	//string ip = "10.21.68.2";
-	//int port = 1111;
-
-	std::cout<<"Trying to connect to Robot Server... at: "<<ip<<":"<<port<<std::endl;
-
-	//connect to host
-	client.conn(ip, port);
-
-	//create thread to send messages
-	pthread_create(&TCPsend, NULL, TCP_Send_Thread, NULL);
-
-	//create thread to recv messages
-	pthread_create(&TCPrecv, NULL, TCP_Recv_Thread, NULL);
-
-	/* the function must return something - NULL will do */
-	return NULL;
-
-}
-
-/**
- * This function sends data to the cRIO over TCP.
- *
- * This function assumes the TCP stream has already been created.
- *
- * Currently the only data we receive from the CRIO is match start
- * boolean which allows us to detrmine the time autonomous starts.
- *
- * This function should be ran it its own thread. It uses a sleep
- * function to pause execution.
- */
-
-void *TCP_Send_Thread(void *args)
-{
-	int count = 0;
-	while (true)
-	{
-		//Create a string which has following information
-		//MatchStart, HotGoal, Distance, message #
-
-		pthread_mutex_lock(&targetMutex);
-		pthread_mutex_lock(&matchStartMutex);
-		stringstream message;
-
-		//create string stream message;
-		message << targets.matchStart << ","<< targets.validFrame << "," << targets.HotGoal << ","
-				<< targets.cameraConnected << "," << progRun << ","<< targets.hotLeftOrRight << ","
-				<< targets.targetDistance << "," << count << "\n";
-
-		//send message over pipe
-		client.send_data(message.str());
-		pthread_mutex_unlock(&matchStartMutex);
-		pthread_mutex_unlock(&targetMutex);
-
-		count++;
-		usleep(50000); //  run ~20 times a second
-
-	}
-
-	return NULL;
-
-}
-
-/**
- * This function captures data from the cRIO over TCP and saves it in a
- * variable.
- *
- * NOTE: THIS FUNCTION BLOCKS WAITING FOR DATA ON THE PIPE TO BE
- * RECEIVED. IF YOU PASS IT A MUTABLE LOCK, IT WILL BLOCK ON
- * THAT LOCK UNTIL A /n CHARACTER IS RECEIVED. POSSIBLY BLOCKING
- * ANY OTHER THREAD USING THAT LOCK.
- *
- * YOU CAN AVOID THIS BY MAKING SURE THE CRIO PASSES DATA TO THE BONE
- * FASTER OR AS FAST AS THIS FUNCTION LOOPS.
- *
- * ALSO BE CAREFUL WHAT MUTABLE LOCKS ARE USED.
- *
- * This function assumes the TCP stream has already been created.
- *
- * Currently the only data we receive from the CRIO is match start
- * boolean which allows us to determine the time autonomous starts.
- *
- * This function should be ran it its own thread. It uses a sleep
- * function to pause execution.
- */
-
-void *TCP_Recv_Thread(void *args)
-{
-	int count1 = 0;
-	int count2 = 0;
-	struct timespec end;
-
-	while (true)
-	{
-		//Set Match State, should be single int
-//		pthread_mutex_lock(&matchStartMutex);
-		targets.matchStart = atoi(client.receive(5).c_str());
-
-		if(!targets.matchStart)
-		{
-			count1=0;
-			count2=0;
-			targets.validFrame = false;
-
-		}
-
-		//once the match starts, we start a timer and run it in
-		//a new thread, we use a count variable so we only run this once
-		if(targets.matchStart && count1==0)
-		{
-			clock_gettime(CLOCK_REALTIME, &autoStart);
-			count1++;
-			pthread_create(&AutoCounter, NULL, HotGoalCounter, args);
-		}
-
-
-		clock_gettime(CLOCK_REALTIME, &end);
-
-		//Only set validFrame after we wait a certain amount of time, and after
-		//process thread starts
-		if(targets.matchStart && diffClock(autoStart,end)>=AUTO_STEADY_STATE && progRun && count2==0 )
-		{
-			targets.validFrame = true;
-			count2++;
-		}
-
-
-//		pthread_mutex_unlock(&matchStartMutex);
-
-		usleep(20000); // run 5 times a second
-
-	}
-
-	return NULL;
-
-}
 
 /**
  * This function uses FFMPEG codec apart of openCV to open a
@@ -941,54 +715,6 @@ void *VideoCap(void *args)
 	return NULL;
 }
 
-void *HotGoalCounter(void *args)
-{
-
-	//If this method started, then the match started
-
-
-	while (true)
-	{
-		clock_gettime(CLOCK_REALTIME, &autoEnd);
-		double timeNow = diffClock(autoStart,autoEnd);
-		if(timeNow<5)
-		{
-			pthread_mutex_lock(&targetMutex);
-			if(targets.targetLeftOrRight == 0)
-				targets.hotLeftOrRight = targets.lastTargerLorR * -1;
-			else
-				targets.hotLeftOrRight = targets.targetLeftOrRight;
-			pthread_mutex_unlock(&targetMutex);
-
-			cout<<"this side hot"<<endl;
-		}
-		else if(timeNow<10)
-		{
-			//Auto has been running for 5 seconds, so the other side is hot
-			//we update the variable to switch to other side
-			pthread_mutex_lock(&targetMutex);
-			targets.hotLeftOrRight = targets.hotLeftOrRight * -1;
-			pthread_mutex_unlock(&targetMutex);
-
-			cout<<"otherside hot"<<endl;
-		}
-		else if (timeNow >= 10)
-		{
-			//Auto is over, no more hot targets, end thread
-			pthread_mutex_lock(&targetMutex);
-			targets.hotLeftOrRight = 0;
-			pthread_mutex_unlock(&targetMutex);
-			cout<<"auto over"<<endl;
-			break;
-		}
-
-		usleep(50000); // run 10 times a second
-
-	}
-
-	return NULL;
-
-}
 
 void printCommandLineUsage()
 {
@@ -1036,6 +762,17 @@ void printCommandLineUsage()
 	cout<<"Prints this menu"<<endl;
 
 
+}
+
+void error(const char *msg)
+{
+	perror(msg);
+	exit(0);
+}
+
+double diffClock(timespec start, timespec end)
+{
+ return	(end.tv_sec - start.tv_sec) + (double) (end.tv_nsec - start.tv_nsec)/ 1000000000.0f;
 }
 
 
