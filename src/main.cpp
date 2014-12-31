@@ -1,3 +1,24 @@
+/*
+
+Copyright (C) 2014  Kevin Harrilal, Control Engineer, Aluminum Falcon Robotics Inc.
+kevin@team2168.org
+
+Dec 31, 2014
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+
+*/
 #define _USE_MATH_DEFINES
 #define MIN_WIDTH 120
 #define Y_IMAGE_RES 240
@@ -715,7 +736,10 @@ void *VideoCap(void *args)
 	return NULL;
 }
 
-
+/*
+ * This function prints the command line usage of this
+ * program to the std output
+ */
 void printCommandLineUsage()
 {
 	cout<<"Usage: 2168_Vision  [Input]  [Options] \n\n";
@@ -764,12 +788,19 @@ void printCommandLineUsage()
 
 }
 
+/*
+ * Error Functions
+ * - Not Used -
+ */
 void error(const char *msg)
 {
 	perror(msg);
 	exit(0);
 }
 
+/*
+ * Calculate real clock difference
+ */
 double diffClock(timespec start, timespec end)
 {
  return	(end.tv_sec - start.tv_sec) + (double) (end.tv_nsec - start.tv_nsec)/ 1000000000.0f;
