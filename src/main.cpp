@@ -98,12 +98,12 @@ void *HotGoalCounter(void *args);
 const double PI = 3.141592653589793;
 
 //Thresholding parameters
-int minR = 0;
-int maxR = 30;
-int minG = 80; //160 for ip cam, 80 to support MS webcam
+int minR = 240;
+int maxR = 255;
+int minG = 240; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
 int minB = 0;
-int maxB = 30;
+int maxB = 10;
 
 //Target Ratio Ranges
 double MinHRatio = 1.5;
