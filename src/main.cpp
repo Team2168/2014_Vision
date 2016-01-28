@@ -99,11 +99,11 @@ const double PI = 3.141592653589793;
 
 //Thresholding parameters
 int minR = 0;
-int maxR = 30;
-int minG = 80; //160 for ip cam, 80 to support MS webcam
-int maxG = 255;
-int minB = 0;
-int maxB = 30;
+int maxR = 200;
+int minG = 0;
+int maxG = 150;
+int minB = 255;
+int maxB = 100;
 
 //Target Ratio Ranges
 double MinHRatio = 1.5;
@@ -112,7 +112,7 @@ double MaxHRatio = 6.6;
 double MinVRatio = 1.5;
 double MaxVRatio = 8.5;
 
-int MAX_SIZE = 255;
+int MAX_SIZE = 2000;
 
 //Some common colors to draw with
 const Scalar RED = Scalar(0, 0, 255),
@@ -338,13 +338,14 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 					line(original, rect_points[j], rect_points[(j + 1) % 4], BLUE, 1, 8);
 			}
 			//define minAreaBox
-			Rect box = minRect[i].boundingRect();
+			//Rect box = minRect[i].boundingRect();
 
-			double WHRatio = box.width / ((double) box.height);
-			double HWRatio = ((double) box.height) / box.width;
+			//double WHRatio = box.width / ((double) box.height);
+			//double HWRatio = ((double) box.height) / box.width;
+			double area = box.width * box.height;
 
 			//check if contour is vert, we use HWRatio because it is greater that 0 for vert target
-			if ((HWRatio > MinVRatio) && (HWRatio < MaxVRatio))
+			if (area >= MAX_SIZE)
 			{
 				targets.VertGoal = true;
 				targets.VerticalTarget = box;
@@ -355,32 +356,6 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 				targets.Vertical_W_H_Ratio = WHRatio;
 
 			}
-			//check if contour is horiz, we use WHRatio because it is greater that 0 for vert target
-			else if ((WHRatio > MinHRatio) && (WHRatio < MaxHRatio))
-			{
-				targets.HorizGoal = true;
-				targets.HorizontalTarget = box;
-				targets.HorizontalAngle = minRect[i].angle;
-				targets.HorizontalCenter = Point(box.x + box.width / 2,
-						box.y + box.height / 2);
-				targets.Horizontal_H_W_Ratio = HWRatio;
-				targets.Horizontal_W_H_Ratio = WHRatio;
-			}
-
-			if (targets.HorizGoal && targets.VertGoal)
-			{
-				targets.HotGoal = true;
-
-				//determine left or right
-				if (targets.VerticalCenter.x < targets.HorizontalCenter.x) //target is right
-					targets.targetLeftOrRight = 1;
-				else if (targets.VerticalCenter.x > targets.HorizontalCenter.x) //target is left
-					targets.targetLeftOrRight = -1;
-
-				targets.lastTargerLorR = targets.targetLeftOrRight;
-
-			}
-
 			if(params.Debug)
 			{
 				cout<<"Contour: "<<i<<endl;
