@@ -338,10 +338,10 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 					line(original, rect_points[j], rect_points[(j + 1) % 4], BLUE, 1, 8);
 			}
 			//define minAreaBox
-			//Rect box = minRect[i].boundingRect();
+			Rect box = minRect[i].boundingRect();
 
-			//double WHRatio = box.width / ((double) box.height);
-			//double HWRatio = ((double) box.height) / box.width;
+			double WHRatio = box.width / ((double) box.height);
+			double HWRatio = ((double) box.height) / box.width;
 			double area = box.width * box.height;
 
 			//check if contour is vert, we use HWRatio because it is greater that 0 for vert target
