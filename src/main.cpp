@@ -42,6 +42,7 @@ struct ProgParams
 	bool Debug;
 	bool Process;
 	bool USB_Cam;
+	bool FPS;
 };
 
 //Stuct to hold information about targets found
@@ -88,11 +89,11 @@ const double PI = 3.141592653589793;
 
 //Thresholding parameters
 int minR = 0;
-int maxR = 150;
-int minG = 200; //160 for ip cam, 80 to support MS webcam
+int maxR = 50;
+int minG = 169; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
-int minB = 200;
-int maxB = 255;
+int minB = 0;
+int maxB = 50;
 
 //Target Ratio Ranges
 double MinHRatio = 1.5;
@@ -201,8 +202,12 @@ int main(int argc, const char* argv[])
 
 				clock_gettime(CLOCK_REALTIME, &end);
 
-				if(params.Timer)
+				if(params.Timer)	
 					cout << "It took " << diffClock(start,end) << " seconds to process frame \n";
+
+				if(params.FPS)
+					cout << "Processing at " << 1/diffClock(start,end) << " FPS \n";
+
 				
 			}
 
@@ -241,7 +246,7 @@ int main(int argc, const char* argv[])
  */
 void CalculateDist(Target& targets)
 {
-	cout << targets.Width << endl;
+	//cout << targets.Width << endl;
 	//d = (TARGET_WIDTH_IN * FOV_WIDTH_PIX)/(target_width_pix * 2 * math.tan(CAMERA_WIDTH_FOV_ANGLE_RAD))
 	targets.targetDistance = (TARGET_WIDTH_IN * FOV_WIDTH_PIX)/(targets.Width * 2 * tan(CAMERA_WIDTH_FOV_ANGLE_RAD));
 }
@@ -348,11 +353,15 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 		}
 		//if(params.Visualize)
 			//imshow("Contours", original); //Make a rectangle that encompasses the target
+
+imwrite("../images/Output_Process_Stream.jpg",original);
 	}
 	else
 	{
 		cout << "No Contours" << endl;
 	}
+
+	
 
 	if(params.Visualize)
 				imshow("Contours", original); //Make a rectangle that encompasses the target
@@ -406,6 +415,7 @@ void initializeParams(ProgParams& params)
 	params.Visualize = false;
 	params.Process = true;
 	params.USB_Cam = false;
+	params.FPS = false;
 
 }
 
@@ -480,6 +490,10 @@ void parseCommandInputs(int argc, const char* argv[], ProgParams& params)
 			else if (string(argv[i]) == "-debug") //Enable debug output
 			{
 				params.Debug = true;
+			}
+			else if (string(argv[i]) == "-FPS") //FPS Output
+			{
+				params.FPS = true;
 			}
 			else if (string(argv[i]) == "-d") //Default Params
 			{
