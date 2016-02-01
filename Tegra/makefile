@@ -8,11 +8,17 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include src/subdir.mk
 -include subdir.mk
+-include src/subdir.mk
+
+OS_SUFFIX := $(subst Linux,linux,$(subst Darwin/x86_64,darwin,$(shell uname -s)/$(shell uname -m)))
+
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(strip $(CU_DEPS)),)
+-include $(CU_DEPS)
+endif
 ifneq ($(strip $(C++_DEPS)),)
 -include $(C++_DEPS)
 endif
@@ -35,6 +41,14 @@ endif
 
 -include ../makefile.defs
 
+# OpenGL+GLUT OS-specific define
+ifeq ($(shell uname -s),Darwin)
+GLUT_LIBS := -Xlinker -framework -Xlinker GLUT -Xlinker -framework -Xlinker OpenGL
+else
+GLUT_LIBS := -lGL -lGLU -lglut 
+endif
+
+
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
@@ -43,14 +57,14 @@ all: 2168_Vision
 # Tool invocations
 2168_Vision: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: GCC C++ Linker'
-	arm-linux-gnueabihf-g++ -L/home/OpenCVArm/opencv/platforms/linux/build_hardfp/install/lib -L/usr/arm-linux-gnueabihf/lib -L/usr/local/lib -o "2168_Vision" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Invoking: NVCC Linker'
+	/usr/local/cuda-7.0/bin/nvcc --cudart static -L"/home/vittorio/git/2168_Vision/_Libraries/softFP/lib_OpenCV" --relocatable-device-code=false -m32 -ccbin arm-linux-gnueabihf-g++ -link -o  "2168_Vision" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 2168_Vision
+	-$(RM) $(CU_DEPS)$(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) 2168_Vision
 	-@echo ' '
 
 .PHONY: all clean dependents

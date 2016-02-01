@@ -4,6 +4,10 @@
 #define VIEW_ANGLE 34.8665269
 #define AUTO_STEADY_STATE 1.9 //seconds
 
+#include <unistd.h>
+#include "tcp_client.h"
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <opencv2/opencv.hpp>
@@ -14,7 +18,6 @@
 #include <sstream>
 
 #include <pthread.h>
-#include "tcp_client.h"
 
 
 
@@ -98,21 +101,21 @@ void *HotGoalCounter(void *args);
 const double PI = 3.141592653589793;
 
 //Thresholding parameters
-int minR = 0;
-int maxR = 30;
-int minG = 80; //160 for ip cam, 80 to support MS webcam
+int minR = 230;
+int maxR = 255;
+int minG = 230; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
-int minB = 0;
-int maxB = 30;
+int minB = 90;
+int maxB = 160;
 
 //Target Ratio Ranges
-double MinHRatio = 1.5;
-double MaxHRatio = 6.6;
+double MinHRatio = 1.0;
+double MaxHRatio = 1.5;
 
-double MinVRatio = 1.5;
-double MaxVRatio = 8.5;
+double MinVRatio = 0.3;
+double MaxVRatio = 1;
 
-int MAX_SIZE = 255;
+int MAX_SIZE = 350;
 
 //Some common colors to draw with
 const Scalar RED = Scalar(0, 0, 255),
@@ -295,11 +298,11 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 	}
 
 	//run through all contours and remove small contours
-	unsigned int contourMin = 6;
+	unsigned int contourMin = 80;
 	for (vector<vector<Point> >::iterator it = contours.begin();
 			it != contours.end();)
 	{
-		//cout<<"Contour Size: "<<it->size()<<endl;
+		cout<<"Contour Size: "<<it->size()<<endl;
 		if (it->size() < contourMin)
 			it = contours.erase(it);
 
@@ -313,7 +316,6 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 
 	/// Draw contours
 	Mat drawing = Mat::zeros(original.size(), CV_8UC3);
-
 	NullTargets(targets);
 
 	//run through large contours to see if they are our targerts
@@ -329,7 +331,7 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 			{
 
 				//if(hierarchy[i][100] != -1)
-				//drawContours(original, contours, i, RED, 2, 8, hierarchy, 0,Point());
+				drawContours(original, contours, i, RED, 2, 8, hierarchy, 0,Point());
 
 				//draw a minimum box around the target in green
 				Point2f rect_points[4];
@@ -400,8 +402,8 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 			line(original, Point(320/2, 240/2), Point(320/2, 240/2), YELLOW, 3);
 
 		}
-		//if(params.Visualize)
-			//imshow("Contours", original); //Make a rectangle that encompasses the target
+		if(params.Visualize)
+			imshow("Contours", original); //Make a rectangle that encompasses the target
 	}
 	else
 	{
@@ -409,8 +411,8 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 		targets.targetLeftOrRight = 0;
 	}
 
-	if(params.Visualize)
-				imshow("Contours", original); //Make a rectangle that encompasses the target
+	//if(params.Visualize)
+				//imshow("Contours", original); //Make a rectangle that encompasses the target
 
 	pthread_mutex_lock(&matchStartMutex);
 	if (!targets.matchStart)
@@ -840,7 +842,8 @@ void *VideoCap(void *args)
 			//We specify desired frame size and fps in constructor
 			//Camera must be able to support specified framesize and frames per second
 			//or this will set camera to defaults
-			while (!vcap.open(videoStreamAddress, 320,240,7.5))
+			//while (!vcap.open(videoStreamAddress, 320,240,7.5))
+			while (!vcap.open(videoStreamAddress))
 			{
 				std::cout << "Error connecting to camera stream, retrying " << count<< std::endl;
 				count++;
@@ -851,7 +854,7 @@ void *VideoCap(void *args)
 			//all opencv v4l2 camera controls scale from 0.0 - 1.0
 
 			//vcap.set(CV_CAP_PROP_EXPOSURE_AUTO, 1);
-			vcap.set(CV_CAP_PROP_EXPOSURE_ABSOLUTE, 0.1);
+			//vcap.set(CV_CAP_PROP_EXPOSURE_ABSOLUTE, 0.1);
 			vcap.set(CV_CAP_PROP_BRIGHTNESS, 1);
 			vcap.set(CV_CAP_PROP_CONTRAST, 0);
 
@@ -1037,6 +1040,3 @@ void printCommandLineUsage()
 
 
 }
-
-
-

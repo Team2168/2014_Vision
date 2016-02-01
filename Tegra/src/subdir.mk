@@ -19,8 +19,9 @@ CPP_DEPS += \
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.cpp
 	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C++ Compiler'
-	arm-linux-gnueabihf-g++ -I/home/OpenCVArm/opencv/platforms/linux/build_hardfp/install/include/ -I/usr/arm-linux-gnueabihf/include/c++/4.6.3 -I/home/CurlArm/curl/include/ -O0 -g -Wall -c -fmessage-length=0 -v -fPIC -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o "$@" "$<"
+	@echo 'Invoking: NVCC Compiler'
+	/usr/local/cuda-7.0/bin/nvcc -I"/home/vittorio/git/2168_Vision/_Includes/OpenCV/2.4.10" -I/usr/arm-linux-gnueabi/include -G -g -O0 -ccbin arm-linux-gnueabihf-g++  -m32 -odir "src" -M -o "$(@:%.o=%.d)" "$<"
+	/usr/local/cuda-7.0/bin/nvcc -I"/home/vittorio/git/2168_Vision/_Includes/OpenCV/2.4.10" -I/usr/arm-linux-gnueabi/include -G -g -O0 --compile -m32 -ccbin arm-linux-gnueabihf-g++  -x c++ -o  "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
