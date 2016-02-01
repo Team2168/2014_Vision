@@ -39,6 +39,7 @@ struct ProgParams
 	bool Debug;
 	bool Process;
 	bool USB_Cam;
+	bool FPS;
 };
 
 //Stuct to hold information about targets found
@@ -101,12 +102,12 @@ void *HotGoalCounter(void *args);
 const double PI = 3.141592653589793;
 
 //Thresholding parameters
-int minR = 230;
-int maxR = 255;
-int minG = 230; //160 for ip cam, 80 to support MS webcam
+int minR = 0;
+int maxR = 80;
+int minG = 160; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
-int minB = 90;
-int maxB = 160;
+int minB = 0;
+int maxB = 50;
 
 //Target Ratio Ranges
 double MinHRatio = 1.0;
@@ -221,6 +222,9 @@ int main(int argc, const char* argv[])
 				if(params.Timer)
 					cout << "It took " << diffClock(start,end) << " seconds to process frame \n";
 
+				if(params.FPS)
+					cout << "Processing at "  << 1/diffClock(start,end) << " FPS \n";
+
 
 			}
 
@@ -302,7 +306,7 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 	for (vector<vector<Point> >::iterator it = contours.begin();
 			it != contours.end();)
 	{
-		cout<<"Contour Size: "<<it->size()<<endl;
+		//cout<<"Contour Size: "<<it->size()<<endl;
 		if (it->size() < contourMin)
 			it = contours.erase(it);
 
@@ -480,6 +484,7 @@ void initializeParams(ProgParams& params)
 	params.Visualize = false;
 	params.Process = true;
 	params.USB_Cam = false;
+	params.FPS = false;
 
 }
 
@@ -554,6 +559,10 @@ void parseCommandInputs(int argc, const char* argv[], ProgParams& params)
 			else if (string(argv[i]) == "-debug") //Enable debug output
 			{
 				params.Debug = true;
+			}
+			else if (string(argv[i]) == "-FPS") //Enable FPS output
+			{
+				params.FPS = true;
 			}
 			else if (string(argv[i]) == "-d") //Default Params
 			{
