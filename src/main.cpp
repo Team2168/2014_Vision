@@ -2,7 +2,11 @@
 #define MIN_WIDTH 120
 #define Y_IMAGE_RES 240
 #define VIEW_ANGLE 34.8665269
-#define AUTO_STEADY_STATE 1.9 //seconds
+#define AUTO_STEADY_STATE 1.9
+
+#define TARGET_WIDTH_IN 20.1875
+#define FOV_WIDTH_PIX 640
+#define CAMERA_WIDTH_FOV_ANGLE_RAD 0.371939933927842
 
 #include <unistd.h>
 #include "tcp_client.h"
@@ -47,6 +51,8 @@ struct Target
 {
 	Rect HorizontalTarget;
 	Rect VerticalTarget;
+
+	Rect Target;
 
 	double HorizontalAngle;
 	double VerticalAngle;
@@ -103,11 +109,11 @@ const double PI = 3.141592653589793;
 
 //Thresholding parameters
 int minR = 0;
-int maxR = 80;
-int minG = 160; //160 for ip cam, 80 to support MS webcam
+int maxR = 150;
+int minG = 200; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
-int minB = 0;
-int maxB = 50;
+int minB = 200;
+int maxB = 255;
 
 //Target Ratio Ranges
 double MinHRatio = 1.0;
@@ -116,7 +122,7 @@ double MaxHRatio = 1.5;
 double MinVRatio = 0.3;
 double MaxVRatio = 1;
 
-int MAX_SIZE = 350;
+int MAX_SIZE = 2000;
 
 //Some common colors to draw with
 const Scalar RED = Scalar(0, 0, 255),
@@ -263,15 +269,8 @@ int main(int argc, const char* argv[])
  */
 void CalculateDist(Target& targets)
 {
-	//vertical target is 32 inches fixed
-	double targetHeight = 32.0;
-
-	//get vertical pixels from targets
-	int height = targets.VerticalTarget.height;
-
 	//d = Tft*FOVpixel/(2*Tpixel*tanΘ)
-	targets.targetDistance = Y_IMAGE_RES * targetHeight
-			/ (height * 12 * 2 * tan(VIEW_ANGLE * PI / (180 * 2)));
+	targets.targetDistance = (TARGET_WIDTH_IN * FOV_WIDTH_PIX)/(targets.Target.width * 2 * tan(CAMERA_WIDTH_FOV_ANGLE_RAD));
 }
 
 /**
@@ -302,7 +301,7 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 	}
 
 	//run through all contours and remove small contours
-	unsigned int contourMin = 80;
+	unsigned int contourMin = 5;
 	for (vector<vector<Point> >::iterator it = contours.begin();
 			it != contours.end();)
 	{
@@ -352,38 +351,40 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 			//check if contour is vert, we use HWRatio because it is greater that 0 for vert target
 			if ((HWRatio > MinVRatio) && (HWRatio < MaxVRatio))
 			{
-				targets.VertGoal = true;
-				targets.VerticalTarget = box;
-				targets.VerticalAngle = minRect[i].angle;
-				targets.VerticalCenter = Point(box.x + box.width / 2,
-						box.y + box.height / 2);
-				targets.Vertical_H_W_Ratio = HWRatio;
-				targets.Vertical_W_H_Ratio = WHRatio;
+				targets.Target = box;
+//				targets.VertGoal = true;
+//				targets.VerticalTarget = box;
+//				targets.VerticalAngle = minRect[i].angle;
+//				targets.VerticalCenter = Point(box.x + box.width / 2,
+//						box.y + box.height / 2);
+//				targets.Vertical_H_W_Ratio = HWRatio;
+//				targets.Vertical_W_H_Ratio = WHRatio;
 
 			}
 			//check if contour is horiz, we use WHRatio because it is greater that 0 for vert target
 			else if ((WHRatio > MinHRatio) && (WHRatio < MaxHRatio))
 			{
-				targets.HorizGoal = true;
-				targets.HorizontalTarget = box;
-				targets.HorizontalAngle = minRect[i].angle;
-				targets.HorizontalCenter = Point(box.x + box.width / 2,
-						box.y + box.height / 2);
-				targets.Horizontal_H_W_Ratio = HWRatio;
-				targets.Horizontal_W_H_Ratio = WHRatio;
+				targets.Target = box;
+//				targets.HorizGoal = true;
+//				targets.HorizontalTarget = box;
+//				targets.HorizontalAngle = minRect[i].angle;
+//				targets.HorizontalCenter = Point(box.x + box.width / 2,
+//						box.y + box.height / 2);
+//				targets.Horizontal_H_W_Ratio = HWRatio;
+//				targets.Horizontal_W_H_Ratio = WHRatio;
 			}
 
 			if (targets.HorizGoal && targets.VertGoal)
 			{
-				targets.HotGoal = true;
-
-				//determine left or right
-				if (targets.VerticalCenter.x < targets.HorizontalCenter.x) //target is right
-					targets.targetLeftOrRight = 1;
-				else if (targets.VerticalCenter.x > targets.HorizontalCenter.x) //target is left
-					targets.targetLeftOrRight = -1;
-
-				targets.lastTargerLorR = targets.targetLeftOrRight;
+//				targets.HotGoal = true;
+//
+//				//determine left or right
+//				if (targets.VerticalCenter.x < targets.HorizontalCenter.x) //target is right
+//					targets.targetLeftOrRight = 1;
+//				else if (targets.VerticalCenter.x > targets.HorizontalCenter.x) //target is left
+//					targets.targetLeftOrRight = -1;
+//
+//				targets.lastTargerLorR = targets.targetLeftOrRight;
 
 			}
 
