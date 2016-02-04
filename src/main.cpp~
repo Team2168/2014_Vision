@@ -109,7 +109,7 @@ const double PI = 3.141592653589793;
 
 //Thresholding parameters
 int minR = 0;
-int maxR = 180;
+int maxR = 150;
 int minG = 200; //160 for ip cam, 80 to support MS webcam
 int maxG = 255;
 int minB = 200;
@@ -213,6 +213,7 @@ int main(int argc, const char* argv[])
 				pthread_mutex_lock(&targetMutex);
 				findTarget(img, thresholded, targets, params);
 				CalculateDist(targets);
+
 				if(params.Debug)
 				{
 					cout<<"Vert: "<<targets.VertGoal<<endl;
@@ -223,6 +224,8 @@ int main(int argc, const char* argv[])
 				pthread_mutex_unlock(&targetMutex);
 
 				clock_gettime(CLOCK_REALTIME, &end);
+
+				imwrite("stream.jpg", thresholded);
 
 				if(params.Timer)
 					cout << "It took " << diffClock(start,end) << " seconds to process frame \n";
@@ -333,12 +336,13 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 			{
 
 				//if(hierarchy[i][100] != -1)
-				drawContours(thresholded, contours, i, RED, 2, 8, hierarchy, 0,Point());
+				drawContours(original, contours, i, RED, 2, 8, hierarchy, 0,Point());
+
 				//draw a minimum box around the target in green
 				Point2f rect_points[4];
 				minRect[i].points(rect_points);
 				for (int j = 0; j < 4; j++)
-					line(thresholded, rect_points[j], rect_points[(j + 1) % 4], BLUE, 1, 8);
+					line(original, rect_points[j], rect_points[(j + 1) % 4], BLUE, 1, 8);
 			}
 			//define minAreaBox
 			Rect box = minRect[i].boundingRect();
@@ -403,10 +407,10 @@ void findTarget(Mat original, Mat thresholded, Target& targets, const ProgParams
 			Point center(box.x + box.width / 2, box.y + box.height / 2);
 			line(original, center, center, YELLOW, 3);
 			line(original, Point(320/2, 240/2), Point(320/2, 240/2), YELLOW, 3);
+
 		}
 		if(params.Visualize)
-			imwrite("stream.jpg", thresholded);
-			//imshow("Contours", original); //Make a rectangle that encompasses the target
+			imshow("Contours", original); //Make a rectangle that encompasses the target
 	}
 	else
 	{
